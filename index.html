@@ -4,7 +4,42 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-title" content="フリックラン">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1d2333">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// Supabase：共通のクライアント
+window.getSb = function () {
+  if (window.__sb) return window.__sb;
+  if (!(typeof ONLINE !== 'undefined' && ONLINE.url.startsWith('https://') && ONLINE.key && window.supabase)) return null;
+  window.__sb = window.supabase.createClient(ONLINE.url, ONLINE.key, { realtime: { params: { eventsPerSecond: 10 } } });
+  return window.__sb;
+};
+// ランキング（scores テーブル）
+window.makeSupabaseRank = function () {
+  const sb = window.getSb(); if (!sb) return null;
+  let dev = '';
+  try { dev = localStorage.getItem('flickRunDevice') || ''; if (!dev) { dev = 'd' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('flickRunDevice', dev); } } catch (e) { dev = 'd' + Math.random().toString(36).slice(2); }
+  let mine = null;
+  return {
+    canSubmit: true,
+    async top(n) {
+      const { data, error } = await sb.from('scores').select('name,score,skin').order('score', { ascending: false }).limit(n);
+      if (error) throw error;
+      return (data || []).map(r => ({ ...r, me: !!mine && r.name === mine.name && r.score === mine.score }));
+    },
+    async submit(name, score, skin) {
+      mine = { name, score };
+      const { error } = await sb.from('scores').upsert({ device_id: dev, name, score, skin, updated_at: new Date().toISOString() }, { onConflict: 'device_id' });
+      if (error) throw error;
+    },
+  };
+};
+</script>
 <title>フリックラン！</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
@@ -83,6 +118,23 @@
   .coll-head span { font-size: 13px; color: #ffd84a; font-weight: 800; }
   .cbar { width: 100%; max-width: 380px; height: 8px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; margin: 2px 0 8px; }
   .cbar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,#ff9ad5,#ffd84a); transition: width .6s; }
+  .rank-panel { position: relative; width: 100%; max-width: 380px; border-radius: 24px; padding: 14px 12px; overflow: hidden;
+    background: radial-gradient(circle at 70% 0%, #ffb547 0%, #e8603c 40%, #7a2346 100%); box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.3); display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .rank-panel::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(#fff 1px, transparent 1.4px); background-size: 22px 22px; opacity: .12; pointer-events: none; }
+  .rank-panel .gp-title { background: linear-gradient(90deg,#fff6c2,#ffe57a,#fff); -webkit-background-clip: text; background-clip: text; }
+  .rank-panel .gp-sub { color: #ffe4d2; }
+  .rank-list { width: 100%; display: flex; flex-direction: column; gap: 6px; z-index: 1; }
+  .rank-msg { text-align: center; padding: 18px 6px; font-size: 14px; color: #fff; }
+  .rk { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.92); color: #4a2338; border-radius: 14px; padding: 7px 12px; font-weight: 800; box-shadow: 0 3px 0 rgba(0,0,0,.15); }
+  .rk.top { background: #fff; }
+  .rk.me { box-shadow: 0 0 0 3px #ffd84a, 0 3px 0 rgba(0,0,0,.15); }
+  .rk-m { width: 28px; text-align: center; font-size: 20px; }
+  .rk-n { display: inline-block; width: 24px; height: 24px; line-height: 24px; border-radius: 50%; background: #f1dbe4; font-size: 13px; }
+  .rk-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid; flex-shrink: 0; }
+  .rk-name { flex: 1; text-align: left; font-size: 15px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .rk-name small { font-size: 10px; background: #ffd84a; color: #5a2a00; padding: 1px 6px; border-radius: 99px; vertical-align: 2px; }
+  .rk-s { font-size: 18px; color: #e8603c; }
+  .rk-s small { font-size: 11px; color: #9a6a7a; }
   #overlay.scroll > * { flex-shrink: 0; }
   #overlay.scroll { justify-content: flex-start; overflow-y: auto; }
   .rules { text-align: left; max-width: 520px; width: 100%; font-size: 14px; line-height: 1.7; }
@@ -388,7 +440,7 @@ function gameOver() {
   state = 'over';
   const m = Math.floor(dist / MPX);
   const isBest = m > best;
-  if (isBest) { best = m; try { localStorage.setItem('tossaRunBest_' + playerName, best); } catch (e) {} }
+  if (isBest) { best = m; try { localStorage.setItem('tossaRunBest_' + playerName, best); } catch (e) {} submitBest(); }
   bestEl.textContent = 'ベスト ' + best + ' m';
   const why = { pit: '落とし穴に落ちた…', door: 'ドアにぶつかった…', rock: '岩にぶつかった…', river: '川でおぼれた…', banana: 'バナナですべった…' }[deathType] || 'アウト…';
   overlay.innerHTML = `<h1>ゲームオーバー</h1><p>${why}</p>
@@ -421,7 +473,7 @@ const vs = { mode: false, cap: null, room: null, roomName: '', pass: '', ready: 
 })();
 // Supabase Realtime（presence）を、ゲーム側の「部屋」の形にあわせる
 function makeSupabaseCap() {
-  const client = window.supabase.createClient(ONLINE.url, ONLINE.key, { realtime: { params: { eventsPerSecond: 10 } } });
+  const client = window.getSb();
   const myId = Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
   return {
     join(name) {
@@ -430,10 +482,12 @@ function makeSupabaseCap() {
         let mine = {}, snap = [], handlers = [], left = false, done = false;
         const rebuild = () => {
           const st = ch.presenceState();
-          snap = Object.keys(st).map(k => {
+          snap = Object.keys(st).filter(k => k !== myId).map(k => {
             const arr = st[k]; const pr = Object.assign({}, arr[arr.length - 1]); delete pr.presence_ref;
-            return { peer: k, by: null, kind: 'viewer', isMe: k === myId, sameTab: k === myId, guest: false, presence: pr, updatedAt: Date.now() };
+            return { peer: k, by: null, kind: 'viewer', isMe: false, sameTab: false, guest: false, presence: pr, updatedAt: Date.now() };
           });
+          // 自分の状態は、送った瞬間の内容をそのまま使う（サーバーの返事を待たない）
+          snap.push({ peer: myId, by: null, kind: 'viewer', isMe: true, sameTab: true, guest: false, presence: mine, updatedAt: Date.now() });
           handlers.forEach(h => { try { h({ peers: snap, joined: [], left: [], updated: [] }); } catch (e) {} });
         };
         ch.on('presence', { event: 'sync' }, rebuild);
@@ -448,7 +502,7 @@ function makeSupabaseCap() {
           presence(patch) {
             mine = Object.assign({}, mine);
             for (const k in patch) { if (patch[k] === null) delete mine[k]; else mine[k] = patch[k]; }
-            push(); return Promise.resolve();
+            push(); setTimeout(rebuild, 0); return Promise.resolve();
           },
           peers() { return snap; },
           onPeers(h) { handlers.push(h); setTimeout(() => h({ peers: snap, joined: [], left: [], updated: [] }), 0); return () => { handlers = handlers.filter(x => x !== h); }; },
@@ -568,12 +622,15 @@ function vsOnPeers() {
   const lobbyPs = ps.filter(p => p.presence.st === 'lobby');
   if (state === 'lobby' && vs.ready && lobbyPs.length >= 2 && lobbyPs.every(p => p.presence.ready)) {
     const host = [...lobbyPs].sort((a, b) => a.peer < b.peer ? -1 : 1)[0];
-    if (host.isMe && host.sameTab && !(host.presence.go > vs.lastGo && host.presence.go > Date.now() - 1500)) {
-      setPresence({ go: Date.now() + 3500, seed: Math.floor(Math.random() * 2e9) });
+    if (host.isMe && host.sameTab && !(vs.myGo > Date.now() - 1500) && !(host.presence.go > vs.lastGo && host.presence.go > Date.now() - 1500)) {
+      vs.myGo = Date.now() + 3500;   // 1ラウンドにつき1回だけ合図を出す
+      setPresence({ go: vs.myGo, seed: Math.floor(Math.random() * 2e9) });
     }
     const hp = host.presence;
     if (typeof hp.go === 'number' && hp.go > vs.lastGo && hp.go > Date.now() - 1500 && typeof hp.seed === 'number') {
       vs.lastGo = hp.go; vs.seed = hp.seed;
+      vs.parts = new Map();   // この試合の参加者（自分以外）
+      lobbyPs.filter(p => !(p.isMe && p.sameTab)).forEach(p => vs.parts.set(p.peer, { name: String(p.presence.name).slice(0, 8), skin: String(p.presence.skin || 'white'), dist: 0, st: 'play', seen: Date.now() }));
       vs.goAt = Date.now() + Math.max(500, Math.min(4000, hp.go - Date.now()));
       state = 'countdown'; vs.lastCount = null;
       overlay.className = ''; overlay.innerHTML = '<p class="big">よーい…</p><h1 id="cd" style="font-size:72px">3</h1>';
@@ -600,13 +657,59 @@ function vsTick() {
   }
 }
 function vsRivals() {
-  return vsPeers().filter(p => !(p.isMe && p.sameTab) && p.presence.match === vs.match);
+  if (!vs.parts) return [];
+  const live = new Map(vsPeers().map(p => [p.peer, p]));
+  const now = Date.now(), out = [];
+  for (const [peer, info] of vs.parts) {
+    const p = live.get(peer);
+    if (p && p.presence.match === vs.match) {
+      const d = +p.presence.dist || 0, st = p.presence.st === 'play' ? 'play' : 'done';
+      if (d !== info.dist || st !== info.st) info.seen = now;
+      info.dist = Math.max(info.dist, d); if (info.st === 'play') info.st = st;
+    }
+    // 通信が10秒以上とだえたら「切断」あつかい
+    if (info.st === 'play' && now - info.seen > 10000) info.st = 'left';
+    out.push({ peer, name: info.name, skin: info.skin, dist: info.dist, st: info.st });
+  }
+  return out;
 }
 function vsFinish() {
-  vs.done = true;
+  vs.done = true; vs.myDist = Math.floor(dist);
   const m = Math.floor(dist / MPX);
   if (m > best) { best = m; try { localStorage.setItem('tossaRunBest_' + playerName, best); } catch (e) {} bestEl.textContent = 'ベスト ' + best + ' m'; }
   setPresence({ st: 'done', alive: false, dist: Math.floor(dist) });
+  if (vsRivals().some(r => r.st === 'play')) {
+    // まだ走っている人がいる → その人を観戦
+    state = 'spectate'; document.body.classList.remove('menu'); overlay.style.display = 'none';
+    sfx('miss'); bgmStart();
+    return;
+  }
+  showVsResult();
+}
+function spectateUpdate(dt) {
+  const run = vsRivals().filter(r => r.st === 'play');
+  if (!run.length) { bgmStop(); showVsResult(); return; }
+  const lead = run.reduce((a, b) => b.dist > a.dist ? b : a);
+  time += dt;
+  speed = K * Math.min(430, 190 + time * 2.0);
+  const gx = PX + (lead.dist - dist);
+  const swim = obs.some(o => o.type === 'river' && gx > o.x && gx < o.x + o.w);
+  const dx = Math.max(0, speed * dt * (swim ? 0.7 : 1) + (lead.dist - dist) * Math.min(1, dt * 2.5));
+  dist += dx; bgOff += dx; nextSpawn -= dx;
+  if (nextSpawn <= 0) spawn();
+  for (const o of obs) o.x -= dx;
+  obs = obs.filter(o => o.x + o.w > -80);
+  // 観戦している人が しかけ に着いたら、こちらの画面でもクリアしたことにする
+  for (const o of obs) {
+    if (!o.resolved && o.x - gx < 20) {
+      if (o.type === 'carrot') o.resolved = true;
+      else if (o.type === 'door' || o.type === 'rock') resolveObs(o);
+      else o.resolved = true;
+    }
+  }
+  player.runT += dt * speed / MPX;
+}
+function showVsResult() {
   state = 'vsresult';
   document.body.classList.add('menu');
   overlay.className = 'scroll'; overlay.style.display = 'flex';
@@ -619,8 +722,8 @@ function vsFinish() {
 }
 function renderVsResult() {
   const list = document.getElementById('resList'); if (!list) return;
-  const rows = [{ name: playerName, dist: Math.floor(dist), running: false, me: true }]
-    .concat(vsRivals().map(p => ({ name: String(p.presence.name), dist: +p.presence.dist || 0, running: p.presence.st === 'play', me: false })));
+  const rows = [{ name: playerName, dist: vs.myDist || 0, running: false, me: true }]
+    .concat(vsRivals().map(r => ({ name: r.name + (r.st === 'left' ? '（切断）' : ''), dist: r.dist, running: r.st === 'play', me: false })));
   rows.sort((a, b) => b.dist - a.dist);
   const running = rows.some(r => r.running);
   list.innerHTML = '<table>' + rows.map((r, i) =>
@@ -637,28 +740,36 @@ setInterval(() => { if (state === 'vsresult') renderVsResult(); }, 500);
 function drawGhosts() {
   if (!vs.mode || !vs.room) return;
   const sv = { player, state, deathType, deathT };
-  for (const p of vsRivals()) {
-    const pd = +p.presence.dist || 0;
-    const dead = p.presence.st !== 'play';
-    const gx = PX + (pd - dist);
-    const name = String(p.presence.name).slice(0, 8);
+  const spect = state === 'spectate';
+  for (const r of vsRivals()) {
+    const dead = r.st !== 'play';
+    const gx = PX + (r.dist - dist) - (spect ? 0 : 14);   // 自分と重ならないよう少し後ろに表示
     ctx.save();
     if (gx > -40 && gx < W + 40) {
-      ctx.globalAlpha = dead ? 0.25 : 0.45;
-      player = { y: 0, fallY: 0, runT: sv.player.runT + 1.7, jumping: false, punchT: 0, openT: 0 };
+      // 穴やバナナの上では はねる／川では泳ぐ
+      let gy = 0, swim = false;
+      if (!dead) for (const o of obs) {
+        if ((o.type === 'pit' || o.type === 'banana') && gx > o.x - 30 && gx < o.x + o.w + 30) {
+          const t = (gx - (o.x - 30)) / (o.w + 60); gy = Math.sin(Math.PI * t) * (o.type === 'pit' ? 90 : 55);
+        }
+        if (o.type === 'river' && gx > o.x && gx < o.x + o.w) swim = true;
+      }
+      ctx.globalAlpha = dead ? 0.3 : spect ? 0.95 : 0.55;
+      player = { y: gy, fallY: 0, runT: sv.player.runT + 1.7, jumping: gy > 0, punchT: 0, openT: 0, swim };
       state = dead ? 'dying' : 'play'; deathType = 'door'; deathT = 0;
-      drawPlayer(gx, String(p.presence.skin || 'white'));
+      drawPlayer(gx, r.skin);
       player = sv.player; state = sv.state; deathType = sv.deathType; deathT = sv.deathT;
-      ctx.globalAlpha = 0.9; ctx.font = '800 14px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillStyle = '#ff4f8b'; ctx.fillText(name, gx + 6, GROUND - 92);
+      ctx.globalAlpha = 1; ctx.font = '800 15px "M PLUS Rounded 1c", sans-serif'; ctx.textAlign = 'center';
+      ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.strokeText(r.name, gx + 6, GROUND - 96 - gy);
+      ctx.fillStyle = '#ff4f8b'; ctx.fillText(r.name, gx + 6, GROUND - 96 - gy);
     } else {
       const ahead = gx >= W + 40;
       const ex = ahead ? W - 70 : 70;
       ctx.globalAlpha = 0.85; ctx.fillStyle = 'rgba(255,79,139,.85)';
       ctx.beginPath(); ctx.roundRect ? ctx.roundRect(ex - 62, 52, 124, 26, 13) : ctx.rect(ex - 62, 52, 124, 26); ctx.fill();
       ctx.fillStyle = '#fff'; ctx.font = '800 13px sans-serif'; ctx.textAlign = 'center';
-      const diff = Math.abs(Math.floor((pd - dist) / MPX));
-      ctx.fillText((ahead ? '' : '◀ ') + name + ' ' + (ahead ? '+' : '-') + diff + 'm' + (ahead ? ' ▶' : ''), ex, 70);
+      const diff = Math.abs(Math.floor((r.dist - dist) / MPX));
+      ctx.fillText((ahead ? '' : '◀ ') + r.name + ' ' + (ahead ? '+' : '-') + diff + 'm' + (ahead ? ' ▶' : ''), ex, 70);
     }
     ctx.restore();
   }
@@ -812,6 +923,75 @@ function drawGacha() {
     renderSkins();
   }, 2200);
 }
+
+// ===== ランキング（1人プレイのベスト記録） =====
+let rankApi = null, rankReady = null;
+rankReady = (async () => {
+  try {
+    if (window.claude && claude.use) {
+      const db = await claude.use('db'), user = await claude.use('user');
+      const uid = user ? await user.id() : null;
+      if (!db) return;
+      rankApi = {
+        canSubmit: !!uid,
+        async top(n) {
+          const snap = await db.collection('rank').orderBy('score', 'desc').limit(n).get();
+          return snap.docs.map(d => ({ ...d.data(), me: d.id === uid }));
+        },
+        async submit(name, score, skin) {
+          if (!uid) return;
+          const ref = db.doc('rank/' + uid);
+          const cur = await ref.get();
+          if (cur.exists && (+cur.data().score || 0) >= score && cur.data().name === name) return;
+          await ref.set({ name, score: Math.max(score, cur.exists ? +cur.data().score || 0 : 0), skin, at: Date.now() });
+        },
+      };
+    } else if (window.makeSupabaseRank) {
+      rankApi = window.makeSupabaseRank();
+    }
+  } catch (e) { rankApi = null; }
+})();
+function submitBest() {
+  if (!playerName || best <= 0) return;
+  rankReady.then(() => { if (rankApi) rankApi.submit(playerName.slice(0, 8), best, curSkin).catch(() => {}); });
+}
+function showRanking() {
+  document.body.classList.add('menu', 'nokbd');
+  state = 'ranking';
+  overlay.className = 'scroll'; overlay.style.display = 'flex';
+  overlay.innerHTML = `<div class="rank-panel">
+      <div class="gp-head"><span class="gp-title">RANKING</span><span class="gp-sub">1人プレイ ベスト記録 TOP10</span></div>
+      <div id="rankList" class="rank-list"><div class="rank-msg">よみこみ中…</div></div>
+    </div>
+    <p style="font-size:13px">あなたのベスト：<b style="color:#ffd84a">${best} m</b></p>
+    <button id="startBtn" style="margin:6px 0">もどる</button>`;
+  document.getElementById('startBtn').onclick = () => { document.body.classList.remove('nokbd'); showTitle(); };
+  const list = document.getElementById('rankList');
+  let done = false;
+  const timer = setTimeout(() => { if (!done && list.isConnected) list.innerHTML = '<div class="rank-msg">ランキングにつながりません。通信を確認してね</div>'; }, 10000);
+  rankReady.then(async () => {
+    if (!rankApi) { done = true; clearTimeout(timer); list.innerHTML = '<div class="rank-msg">この場所ではランキングを使えません</div>'; return; }
+    try {
+      if (best > 0) await rankApi.submit(playerName.slice(0, 8), best, curSkin).catch(() => {});
+      const rows = await rankApi.top(10);
+      done = true; clearTimeout(timer);
+      if (!list.isConnected) return;
+      if (!rows.length) { list.innerHTML = '<div class="rank-msg">まだ記録がありません。1番乗りをめざそう！</div>'; return; }
+      list.innerHTML = rows.map((r, i) => {
+        const sk = SKINS[r.skin] || SKINS.white;
+        const medal = ['🥇', '🥈', '🥉'][i] || `<span class="rk-n">${i + 1}</span>`;
+        return `<div class="rk${r.me ? ' me' : ''}${i < 3 ? ' top' : ''}"><div class="rk-m">${medal}</div>
+          <span class="rk-dot" style="background:${sk.fur};border-color:${sk.line}"></span>
+          <div class="rk-name">${esc(String(r.name || 'ななし').slice(0, 8))}${r.me ? ' <small>あなた</small>' : ''}</div>
+          <div class="rk-s">${Math.floor(+r.score || 0)}<small> m</small></div></div>`;
+      }).join('');
+    } catch (e) {
+      done = true; clearTimeout(timer);
+      if (list.isConnected) list.innerHTML = '<div class="rank-msg">ランキングを読みこめませんでした</div>';
+    }
+  });
+}
+
 // ===== 画面：ログイン / タイトル / ルール =====
 let nameBuf = '';
 function esc(t) { return t.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -850,7 +1030,7 @@ function showTitle() {
     <p>ベスト記録：${best} m</p>
     <button id="startBtn">ひとりで スタート</button>
     <button id="vsBtn" class="btn2" style="font-size:18px;padding:11px 28px;background:#ff7aa8;color:#fff;box-shadow:0 4px 0 #b84a72">🤝 フレンド対戦</button>
-    <div class="row"><button class="btn2" id="rulesBtn">📖 ルール説明</button><button class="btn2" id="skinBtn">🎨 スキン</button><button class="btn2" id="logoutBtn">名前を変える</button></div>`;
+    <div class="row"><button class="btn2" id="rulesBtn">📖 ルール説明</button><button class="btn2" id="rankBtn">🏆 ランキング</button><button class="btn2" id="skinBtn">🎨 スキン</button><button class="btn2" id="logoutBtn">名前を変える</button></div>`;
   document.getElementById('startBtn').onclick = start;
   document.getElementById('rulesBtn').onclick = showRules;
   document.getElementById('vsBtn').onclick = showPass;
@@ -858,6 +1038,7 @@ function showTitle() {
   vs.mode = false; vsLeave();
   document.getElementById('logoutBtn').onclick = showLogin;
   document.getElementById('skinBtn').onclick = () => showSkins(showTitle);
+  document.getElementById('rankBtn').onclick = showRanking;
 }
 function showRules() {
   document.body.classList.add('menu');
@@ -889,6 +1070,8 @@ function showRules() {
       <li>走るほどスピードアップ。しかけの間隔も短くなります</li>
       <li>ぎりぎりで打つと「ギリギリ！」、早めなら「はやい！」</li>
     </ul>
+    <h2>🏆 ランキング</h2>
+    <ul><li>1人プレイのベスト記録が、名前といっしょにランキングにのります（上位10人）</li></ul>
     <h2>🤝 フレンド対戦</h2>
     <ul>
       <li>「フレンド対戦」で合言葉を入れると、同じ合言葉の人と同じ部屋に入れます</li>
@@ -1086,6 +1269,8 @@ function update(dt) {
       }
     }
     scoreEl.textContent = Math.floor(dist / MPX) + ' m';
+  } else if (state === 'spectate') {
+    spectateUpdate(dt);
   } else if (state === 'dying') {
     deathT += dt;
     if (deathType === 'pit') { player.vy += 1400 * dt; player.y -= player.vy * dt; }
@@ -1154,12 +1339,12 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  drawGhosts();
   if (player.inv > 0 && state === 'play') {
     ctx.save(); ctx.globalAlpha = (player.inv < 1 && Math.floor(player.inv * 10) % 2) ? 0.15 : 0.45;
     ctx.fillStyle = '#ffe066'; ctx.beginPath(); ctx.arc(PX, GROUND - 38 - player.y, 52, 0, 7); ctx.fill(); ctx.restore();
   }
-  drawPlayer();
+  if (state !== 'spectate') drawPlayer();
+  drawGhosts();
   for (const o of obs) if (o.type === 'river') {
     ctx.fillStyle = 'rgba(59,143,214,.75)'; ctx.fillRect(o.x, GROUND + 6, o.w, 30);
   }
@@ -1182,6 +1367,16 @@ function drawHUD() {
   ctx.save();
   ctx.font = '800 26px "M PLUS Rounded 1c", sans-serif'; ctx.textBaseline = 'top';
   ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(30,60,90,.55)'; ctx.fillStyle = '#fff';
+  if (state === 'spectate') {
+    const run = vsRivals().filter(r => r.st === 'play');
+    const lead = run.length ? run.reduce((a, b) => b.dist > a.dist ? b : a) : null;
+    ctx.fillStyle = 'rgba(20,25,40,.7)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(W / 2 - 150, 10, 300, 58, 16) : ctx.rect(W / 2 - 150, 10, 300, 58); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '800 20px "M PLUS Rounded 1c", sans-serif';
+    ctx.fillText('👀 観戦中', W / 2, 16);
+    ctx.font = '800 16px "M PLUS Rounded 1c", sans-serif'; ctx.fillStyle = '#ffd84a';
+    if (lead) ctx.fillText(lead.name + '　' + Math.floor(lead.dist / MPX) + ' m', W / 2, 42);
+    ctx.restore(); return;
+  }
   const m = Math.floor(dist / MPX) + ' m';
   ctx.textAlign = 'left'; ctx.strokeText(m, 16, 12); ctx.fillText(m, 16, 12);
   ctx.font = '800 20px "M PLUS Rounded 1c", sans-serif';
