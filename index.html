@@ -134,6 +134,95 @@ window.makeSupabaseRank = function () {
   .rk-name small { font-size: 10px; background: #ffd84a; color: #5a2a00; padding: 1px 6px; border-radius: 99px; vertical-align: 2px; }
   .rk-s { font-size: 18px; color: #e8603c; }
   .rk-s small { font-size: 11px; color: #9a6a7a; }
+  #overlay.shop { background: linear-gradient(180deg, #a8dcff 0%, #d8ecff 45%, #ffe1ef 100%) !important; color: #3a2d55; padding: 12px 12px 20px; gap: 12px; }
+  #overlay.shop::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+    background: radial-gradient(circle at 12% 18%, #fff 0 34px, transparent 35px), radial-gradient(circle at 20% 15%, #fff 0 26px, transparent 27px),
+      radial-gradient(circle at 86% 30%, #fff 0 30px, transparent 31px), radial-gradient(circle at 93% 27%, #fff 0 22px, transparent 23px); }
+  .shop-head { width: 100%; max-width: 380px; display: flex; align-items: center; justify-content: space-between; z-index: 1; }
+  .shop-back { font: inherit; font-weight: 800; font-size: 14px; color: #6a4fa0; background: rgba(255,255,255,.8); border: 0; border-radius: 99px; padding: 8px 14px; box-shadow: 0 3px 10px rgba(90,60,140,.15); cursor: pointer; white-space: nowrap; }
+  .shop-title { font-size: 20px; font-weight: 800; color: #4a3380; letter-spacing: 1px; }
+  .shop-title span { color: #ff6fa5; }
+  .shop-tabs { position: relative; display: grid; grid-template-columns: 1fr 1fr; width: 100%; max-width: 380px; padding: 4px; border-radius: 99px; background: rgba(255,255,255,.55); box-shadow: inset 0 1px 3px rgba(90,60,140,.12); z-index: 1; }
+  .shop-tabs button { position: relative; z-index: 1; font: inherit; font-weight: 800; font-size: 15px; color: #8a7bb0; background: none; border: 0; padding: 9px 0; cursor: pointer; transition: color .2s; }
+  .shop-tabs button.on { color: #ff4f8b; }
+  .shop-tab-pill { position: absolute; left: 4px; top: 4px; bottom: 4px; width: calc(50% - 4px); border-radius: 99px; background: #fff; box-shadow: 0 3px 10px rgba(90,60,140,.18); transition: transform .3s cubic-bezier(.3,1.3,.5,1); }
+  .shop-body { width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 1; animation: fadeUp .3s ease-out; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .shop-card { position: relative; width: 100%; border-radius: 26px; background: rgba(255,255,255,.78); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    box-shadow: 0 14px 34px rgba(90,60,140,.18), inset 0 1px 0 #fff; padding: 18px 14px 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; overflow: hidden; }
+  .ribbon { position: absolute; top: 14px; left: -34px; transform: rotate(-35deg); background: linear-gradient(90deg,#ff6fa5,#ffb36a); color: #fff; font-size: 11px; font-weight: 800; letter-spacing: 2px; padding: 4px 40px; box-shadow: 0 3px 8px rgba(255,111,165,.4); }
+  .gm { position: relative; width: 160px; height: 214px; margin-top: 4px; }
+  .gm-dome { position: absolute; left: 10px; top: 4px; width: 140px; height: 120px; border-radius: 16px; overflow: hidden;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.9), rgba(220,240,255,.45) 45%, rgba(190,220,255,.35)); border: 4px solid #fff; box-shadow: 0 6px 16px rgba(90,60,140,.18), inset 0 -8px 16px rgba(120,160,255,.18); }
+  .gm-shine { position: absolute; left: 12px; top: 10px; width: 10px; height: 56px; border-radius: 6px; background: rgba(255,255,255,.85); }
+  .gm-shine::after { content: ''; position: absolute; left: 16px; top: 0; width: 5px; height: 26px; border-radius: 4px; background: rgba(255,255,255,.7); }
+  .sball { position: absolute; width: 32px; height: 32px; border-radius: 50%; box-shadow: inset -4px -5px 0 rgba(0,0,0,.08), inset 4px 4px 0 rgba(255,255,255,.55); }
+  .sball::after { content: ''; position: absolute; left: 2px; right: 2px; top: 15px; height: 2px; background: rgba(255,255,255,.8); }
+  .gm-dome.jiggle .sball { animation: jig .16s infinite alternate; }
+  .gm-neck { position: absolute; left: 44px; top: 118px; width: 72px; height: 14px; border-radius: 6px; background: linear-gradient(#ffd36b,#f0a93a); }
+  .gm-body { position: absolute; left: 4px; top: 128px; width: 152px; height: 76px; border-radius: 22px; background: linear-gradient(160deg,#ff9cc2,#ff6fa5 60%,#f05592);
+    box-shadow: inset 0 3px 0 rgba(255,255,255,.45), inset 0 -5px 0 rgba(0,0,0,.08), 0 6px 14px rgba(240,85,146,.35); }
+  .gm-label { position: absolute; left: 14px; top: 13px; font-size: 10px; line-height: 1.15; font-weight: 800; letter-spacing: 1px; color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,.15); }
+  .gm-knob { position: absolute; right: 14px; top: 12px; width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff8d6, #ffd36b 55%, #e7a42b); box-shadow: 0 3px 0 #c98417; transition: transform .7s cubic-bezier(.3,1.4,.5,1); }
+  .gm-knob i { position: absolute; left: 16px; top: 4px; width: 8px; height: 32px; border-radius: 4px; background: #fff; box-shadow: inset 0 0 0 2px #e7a42b; }
+  .gm-knob.spin { transform: rotate(360deg); }
+  .gm-chute { position: absolute; left: 60px; bottom: 9px; width: 44px; height: 26px; border-radius: 12px 12px 8px 8px; background: #b9366e; box-shadow: inset 0 4px 0 rgba(0,0,0,.25); }
+  .gm-chute .dropcap { left: 8px; top: -2px; }
+  .gm-base { position: absolute; left: 20px; bottom: 0; width: 120px; height: 12px; border-radius: 50%; background: rgba(90,60,140,.18); }
+  .shop-btn { font: inherit; font-weight: 800; font-size: 19px; color: #fff; border: 0; border-radius: 99px; padding: 12px 34px; cursor: pointer; display: flex; flex-direction: column; align-items: center; line-height: 1.15;
+    background: linear-gradient(135deg,#ff7aa8,#ff9a5a); box-shadow: 0 6px 0 #d8507f, 0 10px 22px rgba(255,111,165,.45); transition: transform .1s; }
+  .shop-btn small { font-size: 11px; opacity: .9; }
+  .shop-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #d8507f; }
+  .shop-btn:disabled { background: linear-gradient(135deg,#cfc6e6,#b9add9); box-shadow: 0 5px 0 #9a8dc4; cursor: default; transform: none; }
+  .shop-btn.small { font-size: 15px; padding: 9px 22px; }
+  .shop-btn.ghost { background: #fff; color: #8a6fc0; box-shadow: 0 4px 0 #d9d0ef; }
+  .rates { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; justify-content: center; }
+  .rates small { width: 100%; text-align: center; font-size: 11px; color: #8a7bb0; margin-top: 2px; }
+  .rr { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 99px; color: #fff; }
+  .rr.N { background: #b7b0c9; } .rr.R { background: #5fb0ff; } .rr.SR { background: #b07cff; } .rr.SSR { background: linear-gradient(90deg,#ffb33a,#ff6fa5,#7c8bff); }
+  .shop-note { font-size: 12px; color: #7a6aa6; }
+  .hero-card { padding-top: 10px; background: radial-gradient(circle at 50% 38%, #fff 0 70px, rgba(255,255,255,.78) 140px); }
+  .hero-card canvas { width: 100%; max-width: 300px; height: auto; }
+  .hero-info { display: flex; align-items: center; gap: 8px; font-size: 18px; color: #4a3380; margin-top: -6px; }
+  .coll { width: 100%; }
+  .coll-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; color: #4a3380; padding: 0 4px; }
+  .coll-top span { font-weight: 800; color: #ff4f8b; }
+  .coll-bar { height: 9px; border-radius: 99px; background: rgba(255,255,255,.7); margin-top: 5px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(90,60,140,.15); }
+  .coll-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,#7cc8ff,#c3a2ff,#ff8fb4); transition: width .6s; }
+  .sk-grid { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .sk-card { position: relative; font: inherit; border: 0; border-radius: 18px; padding: 6px 6px 8px; background: #fff; cursor: pointer; box-shadow: 0 6px 14px rgba(90,60,140,.14); transition: transform .12s; }
+  .sk-card:active { transform: scale(.95); }
+  .sk-card canvas { width: 100%; height: auto; display: block; border-radius: 13px; }
+  .sk-card.r-R { box-shadow: 0 0 0 2px #9fd0ff, 0 6px 14px rgba(90,60,140,.14); }
+  .sk-card.r-SR { box-shadow: 0 0 0 2px #cdb0ff, 0 6px 14px rgba(90,60,140,.14); }
+  .sk-card.r-SSR { box-shadow: 0 0 0 2.5px #ffc76a, 0 6px 16px rgba(255,170,60,.35); }
+  .sk-card.sel { transform: translateY(-3px); outline: 3px solid #ff6fa5; outline-offset: 2px; }
+  .sk-card.lock { background: #efeaf8; }
+  .sk-card.shake { animation: shk .25s; }
+  .sk-r { position: absolute; top: 10px; left: 10px; font-size: 9px; font-weight: 800; color: #fff; padding: 1px 6px; border-radius: 99px; background: #b7b0c9; }
+  .r-R .sk-r { background: #5fb0ff; } .r-SR .sk-r { background: #b07cff; } .r-SSR .sk-r { background: linear-gradient(90deg,#ffb33a,#ff6fa5); }
+  .sk-n { display: block; margin-top: 5px; font-size: 12px; font-weight: 800; color: #4a3380; }
+  .lock .sk-n { color: #a99fc4; }
+  .sk-eq { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; line-height: 24px; border-radius: 50%; background: #ff6fa5; color: #fff; font-size: 13px; font-weight: 800; box-shadow: 0 2px 6px rgba(255,79,139,.5); }
+  .reveal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(40,25,80,.72); animation: fadeIn .25s; overflow: hidden; }
+  .reveal.out { opacity: 0; transition: opacity .25s; }
+  @keyframes fadeIn { from { opacity: 0; } }
+  .rv-rays { position: absolute; width: 900px; height: 900px; left: 50%; top: 50%; margin: -450px 0 0 -450px; background: repeating-conic-gradient(rgba(255,235,150,.22) 0 10deg, transparent 10deg 20deg); animation: rays 9s linear infinite; }
+  .lose .rv-rays { display: none; }
+  .rv-conf i { position: absolute; top: -20px; width: 9px; height: 14px; border-radius: 2px; animation: fall linear forwards; }
+  @keyframes fall { to { top: 110%; transform: rotate(720deg); } }
+  .rv-card { position: relative; width: 250px; border-radius: 28px; background: #fff; padding: 18px 16px 16px; text-align: center; color: #4a3380; box-shadow: 0 20px 50px rgba(0,0,0,.35); animation: flipIn .6s cubic-bezier(.3,1.4,.5,1); }
+  @keyframes flipIn { from { transform: perspective(600px) rotateY(90deg) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+  .win.r-SSR .rv-card { box-shadow: 0 0 0 4px #ffc76a, 0 0 40px rgba(255,200,90,.8), 0 20px 50px rgba(0,0,0,.35); }
+  .win.r-SR .rv-card { box-shadow: 0 0 0 4px #cdb0ff, 0 0 30px rgba(190,150,255,.7), 0 20px 50px rgba(0,0,0,.35); }
+  .win.r-R .rv-card { box-shadow: 0 0 0 4px #9fd0ff, 0 0 26px rgba(120,190,255,.6), 0 20px 50px rgba(0,0,0,.35); }
+  .rv-rar { font-size: 30px; font-weight: 800; letter-spacing: 2px; background: linear-gradient(90deg,#ffb33a,#ff6fa5,#7c8bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .rv-new { position: absolute; top: 14px; right: 14px; background: #ff4f8b; color: #fff; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 99px; transform: rotate(8deg); }
+  .rv-card canvas { width: 200px; height: auto; display: block; margin: 0 auto; }
+  .rv-name { font-size: 21px; font-weight: 800; }
+  .rv-sub { font-size: 13px; color: #8a7bb0; margin-top: 2px; }
+  .rv-lose { font-size: 54px; margin: 6px 0; }
+  .rv-btns { display: flex; gap: 8px; justify-content: center; margin-top: 14px; }
   #overlay.scroll > * { flex-shrink: 0; }
   #overlay.scroll { justify-content: flex-start; overflow-y: auto; }
   .rules { text-align: left; max-width: 520px; width: 100%; font-size: 14px; line-height: 1.7; }
@@ -777,58 +866,130 @@ function saveSkins() {
   } catch (e) {}
 }
 function today() { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
-function previewSkin(canvas, id, locked) {
-  const c2 = canvas.getContext('2d');
-  c2.clearRect(0, 0, canvas.width, canvas.height);
-  const bg = c2.createRadialGradient(canvas.width / 2, canvas.height * .45, 4, canvas.width / 2, canvas.height * .45, canvas.width * .75);
-  bg.addColorStop(0, '#ffffff'); bg.addColorStop(1, SKINS[id].fur + '88');
-  c2.fillStyle = locked ? '#3a3054' : bg; c2.fillRect(0, 0, canvas.width, canvas.height);
-  c2.fillStyle = locked ? '#2c2442' : 'rgba(255,255,255,.65)'; c2.beginPath(); c2.ellipse(canvas.width / 2, canvas.height - 12, canvas.width * .36, 6, 0, 0, 7); c2.fill();
+const RARITY = { white: 'N', brown: 'N', black: 'R', pink: 'R', sky: 'R', mint: 'SR', gold: 'SSR' };
+const RARITY_W = { N: 4, R: 3, SR: 2, SSR: 1 };   // ガチャで出やすさ（まだ持っていないスキンの中から）
+// うさぎを小さなキャンバスに描く（カード・プレビュー用）
+function drawSkin(canvas, id, opt = {}) {
+  const c2 = canvas.getContext('2d'), cw = canvas.width, ch = canvas.height;
+  c2.clearRect(0, 0, cw, ch);
+  const k = Math.min(cw / 112, ch / 104) * (opt.scale || 1);
+  const base = ch * (opt.base || .86);
+  if (opt.bg !== false) {
+    const g = c2.createRadialGradient(cw / 2, ch * .45, 2, cw / 2, ch * .45, cw * .7);
+    if (opt.locked) { g.addColorStop(0, '#f3effa'); g.addColorStop(1, '#ddd6ec'); }
+    else { g.addColorStop(0, '#ffffff'); g.addColorStop(1, SKINS[id].fur + '66'); }
+    c2.fillStyle = g; c2.fillRect(0, 0, cw, ch);
+  }
+  c2.fillStyle = opt.locked ? 'rgba(120,100,160,.18)' : 'rgba(90,60,140,.16)';
+  c2.beginPath(); c2.ellipse(cw / 2, base + 2, 40 * k, 6 * k, 0, 0, 7); c2.fill();
+  const off = document.createElement('canvas'); off.width = cw; off.height = ch;
+  const o2 = off.getContext('2d');
   const save = { ctx, player, state };
-  ctx = c2; player = { y: 0, fallY: 0, runT: 0, jumping: false, punchT: 0, openT: 0, swim: false }; state = 'title';
-  c2.save(); c2.translate(-(PX - canvas.width / 2 + 2), -(GROUND - canvas.height + 14));
-  drawPlayer(PX, id);
-  c2.restore();
-  ctx = save.ctx; player = save.player; state = save.state;
-  if (locked) {
-    const img = c2.getImageData(0, 0, canvas.width, canvas.height), d = img.data;
-    for (let i = 0; i < d.length; i += 4) {   // シルエット化
-      if (!(d[i] === 0x3a && d[i + 1] === 0x30 && d[i + 2] === 0x54) && !(d[i] === 0x2c && d[i + 1] === 0x24)) { d[i] = 0x1b; d[i + 1] = 0x15; d[i + 2] = 0x2e; }
-    }
-    c2.putImageData(img, 0, 0);
-    c2.fillStyle = '#8f86a8'; c2.font = '800 26px sans-serif'; c2.textAlign = 'center'; c2.fillText('?', canvas.width / 2 + 8, canvas.height / 2 + 6);
+  ctx = o2; player = { y: opt.hop || 0, fallY: 0, runT: opt.runT || 0, jumping: !!opt.hop, punchT: 0, openT: 0, swim: false }; state = opt.runT != null ? 'play' : 'title';
+  o2.save(); o2.translate(cw / 2 - 4 * k, base); o2.scale(k, k); o2.translate(-PX, -GROUND);
+  try { drawPlayer(PX, id); } finally { o2.restore(); ctx = save.ctx; player = save.player; state = save.state; }
+  if (opt.locked) {
+    o2.globalCompositeOperation = 'source-in'; o2.fillStyle = '#a99fc4'; o2.fillRect(0, 0, cw, ch);
+    o2.globalCompositeOperation = 'source-over';
+  }
+  c2.drawImage(off, 0, 0);
+  if (opt.locked) {
+    c2.fillStyle = '#fff'; c2.font = `800 ${Math.round(22 * k)}px "M PLUS Rounded 1c", sans-serif`; c2.textAlign = 'center'; c2.textBaseline = 'middle';
+    c2.fillText('?', cw / 2 + 6 * k, base - 40 * k);
   }
 }
-let skinBack = null, gachaTimer = null;
-const BALL_COLORS = ['#ff5a7a', '#ffd84a', '#5fb4f0', '#6fdc8c', '#b98cff', '#ff9a3e'];
-function showSkins(back) {
-  document.body.classList.add('menu');
+function previewSkin(canvas, id, locked) { drawSkin(canvas, id, { locked }); }
+
+let skinBack = null, gachaTimer = null, shopTab = 'gacha', skinSel = null, heroRaf = 0;
+const BALL_COLORS = ['#ff8fb4', '#ffd36b', '#7cc8ff', '#8fe3a8', '#c3a2ff', '#ffb27a'];
+function showSkins(back, tab) {
+  document.body.classList.add('menu', 'nokbd');
   skinBack = back || showTitle;
-  state = 'skins'; document.body.classList.add('nokbd');
-  overlay.className = 'scroll'; overlay.style.display = 'flex';
-  const balls = [[6,78],[34,82],[62,80],[90,78],[20,54],[48,56],[76,52],[34,30],[64,28]]
-    .map(([l, t], i) => `<span class="ball" style="left:${l}px;top:${t}px;background:${BALL_COLORS[i % BALL_COLORS.length]}"></span>`).join('');
+  state = 'skins';
+  shopTab = tab || 'gacha'; skinSel = curSkin;
+  overlay.className = 'scroll shop'; overlay.style.display = 'flex';
   overlay.innerHTML = `
-    <div class="gacha-panel">
-      <div class="gp-head"><span class="gp-title">DAILY GACHA</span><span class="gp-sub">1日1回 むりょう</span></div>
-      <div class="machine">
-        <div class="dome" id="dome">${balls}</div>
-        <div class="mbody"><div class="slot">FREE</div><div class="handle" id="handle"></div>
-          <div class="chute"><div class="dropcap" id="dropcap"><div class="h t" id="capTop"></div><div class="h b"></div></div></div></div>
-      </div>
-      <div class="gres" id="gachaRes"></div>
-      <button id="gachaBtn" class="gbtn"></button>
-      <div class="rate">✦ スキン出現率 ${Math.round(GACHA_RATE * 100)}% ✦</div>
+    <div class="shop-head">
+      <button class="shop-back" id="shopBack">‹ もどる</button>
+      <div class="shop-title">スキン <span>&</span> ガチャ</div>
+      <div style="width:74px"></div>
     </div>
-    <div class="coll-head"><b>コレクション</b><span id="collCount"></span></div>
-    <div class="cbar"><i id="collBar"></i></div>
-    <div class="skins" id="skinGrid"></div>
-    <button id="startBtn" style="margin:14px 0 6px">もどる</button>`;
-  document.getElementById('startBtn').onclick = () => { document.body.classList.remove('nokbd'); clearInterval(gachaTimer); skinBack(); };
-  document.getElementById('gachaBtn').onclick = drawGacha;
-  renderSkins();
+    <div class="shop-tabs">
+      <button data-tab="gacha">🎰 ガチャ</button>
+      <button data-tab="skin">🐰 スキン</button>
+      <i class="shop-tab-pill"></i>
+    </div>
+    <div id="shopBody" class="shop-body"></div>`;
+  document.getElementById('shopBack').onclick = () => {
+    cancelAnimationFrame(heroRaf); clearInterval(gachaTimer);
+    document.body.classList.remove('nokbd'); overlay.classList.remove('shop'); skinBack();
+  };
+  overlay.querySelectorAll('.shop-tabs button').forEach(b => b.onclick = () => { if (!gachaBusy) { sfx('fnKey'); setShopTab(b.dataset.tab); } });
+  setShopTab(shopTab);
   clearInterval(gachaTimer);
   gachaTimer = setInterval(() => { if (state !== 'skins') clearInterval(gachaTimer); else if (!gachaBusy) renderGachaBtn(); }, 1000);
+}
+function setShopTab(tab) {
+  shopTab = tab;
+  cancelAnimationFrame(heroRaf);
+  overlay.querySelectorAll('.shop-tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  overlay.querySelector('.shop-tab-pill').style.transform = tab === 'gacha' ? 'translateX(0)' : 'translateX(100%)';
+  const body = document.getElementById('shopBody');
+  if (tab === 'gacha') {
+    const balls = [[2,82],[30,84],[58,82],[86,84],[104,80],[14,56],[44,58],[72,54],[98,56],[28,30],[60,32],[90,28]]
+      .map(([l, t], i) => `<span class="sball" style="left:${l}px;top:${t}px;background:${BALL_COLORS[i % BALL_COLORS.length]}"></span>`).join('');
+    body.innerHTML = `
+      <div class="shop-card gacha-card">
+        <div class="ribbon">DAILY FREE</div>
+        <div class="gm">
+          <div class="gm-dome" id="dome">${balls}<i class="gm-shine"></i></div>
+          <div class="gm-neck"></div>
+          <div class="gm-body">
+            <div class="gm-label">FLICK<br>GACHA</div>
+            <div class="gm-knob" id="handle"><i></i></div>
+            <div class="gm-chute"><div class="dropcap" id="dropcap"><div class="h t" id="capTop"></div><div class="h b"></div></div></div>
+          </div>
+          <div class="gm-base"></div>
+        </div>
+        <button id="gachaBtn" class="shop-btn"></button>
+        <div class="rates">
+          <span class="rr N">N</span><span class="rr R">R</span><span class="rr SR">SR</span><span class="rr SSR">SSR</span>
+          <small>スキンが出る確率 ${Math.round(GACHA_RATE * 100)}%</small>
+        </div>
+      </div>
+      <div class="shop-note">毎日 0:00 にまた引けるようになります</div>`;
+    document.getElementById('gachaBtn').onclick = drawGacha;
+    renderGachaBtn();
+  } else {
+    body.innerHTML = `
+      <div class="shop-card hero-card">
+        <canvas id="heroCv" width="300" height="170"></canvas>
+        <div class="hero-info">
+          <span id="heroRar" class="rr"></span>
+          <b id="heroName"></b>
+        </div>
+        <button id="equipBtn" class="shop-btn small"></button>
+      </div>
+      <div class="coll">
+        <div class="coll-top"><b>コレクション</b><span id="collCount"></span></div>
+        <div class="coll-bar"><i id="collBar"></i></div>
+      </div>
+      <div class="sk-grid" id="skinGrid"></div>`;
+    document.getElementById('equipBtn').onclick = () => {
+      if (!owned.includes(skinSel) || skinSel === curSkin) return;
+      curSkin = skinSel; saveSkins(); sfx('good'); renderSkins();
+    };
+    renderSkins();
+    let t = 0, last = performance.now();
+    const loop = now => {
+      if (state !== 'skins' || shopTab !== 'skin') return;
+      t += Math.min(0.05, (now - last) / 1000) * 5; last = now;
+      const cv2 = document.getElementById('heroCv');
+      if (cv2) drawSkin(cv2, skinSel, { runT: owned.includes(skinSel) ? t : 0, locked: !owned.includes(skinSel), bg: false, scale: 1.05, base: .9 });
+      heroRaf = requestAnimationFrame(loop);
+    };
+    heroRaf = requestAnimationFrame(loop);
+  }
 }
 function renderGachaBtn() {
   const btn = document.getElementById('gachaBtn'); if (!btn) return;
@@ -838,30 +999,32 @@ function renderGachaBtn() {
     const n = new Date(), t = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1);
     const sec = Math.max(0, Math.floor((t - n) / 1000));
     const hh = Math.floor(sec / 3600), mm = String(Math.floor(sec / 60) % 60).padStart(2, '0'), ss = String(sec % 60).padStart(2, '0');
-    btn.textContent = `つぎまで ${hh}:${mm}:${ss}`;
-  } else btn.textContent = '🎰 ガチャをまわす';
+    btn.innerHTML = `<small>つぎのガチャまで</small>${hh}:${mm}:${ss}`;
+  } else btn.innerHTML = gachaBusy ? 'ガラガラ…' : '🎰 まわす<small>無料</small>';
 }
 function renderSkins() {
   const g = document.getElementById('skinGrid'); if (!g) return;
   g.innerHTML = '';
   SKIN_ORDER.forEach(id => {
-    const have = owned.includes(id);
+    const have = owned.includes(id), r = RARITY[id];
     const b = document.createElement('button');
-    b.className = 'sk' + (id === curSkin ? ' on' : '') + (have ? '' : ' lock');
-    const cvs = document.createElement('canvas'); cvs.width = 100; cvs.height = 90;
+    b.className = `sk-card r-${r}` + (id === skinSel ? ' sel' : '') + (have ? '' : ' lock');
+    const cvs = document.createElement('canvas'); cvs.width = 120; cvs.height = 100;
     b.appendChild(cvs);
-    const lb = document.createElement('div');
-    lb.textContent = have ? SKINS[id].name : '？？？';
-    b.appendChild(lb);
-    if (id === curSkin) { const bd = document.createElement('span'); bd.className = 'badge'; bd.textContent = 'そうび中'; b.appendChild(bd); }
-    previewSkin(cvs, id, !have);
-    if (have) b.onclick = () => { curSkin = id; saveSkins(); sfx('fnKey'); renderSkins(); };
+    b.insertAdjacentHTML('beforeend', `<span class="sk-r">${r}</span><span class="sk-n">${have ? SKINS[id].name : '？？？'}</span>` + (id === curSkin ? '<span class="sk-eq">✓</span>' : ''));
+    drawSkin(cvs, id, { locked: !have });
+    b.onclick = () => { skinSel = id; sfx(have ? 'key' : 'typo'); if (!have) { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); } renderSkins(); };
     g.appendChild(b);
   });
+  const have = owned.includes(skinSel);
+  document.getElementById('heroName').textContent = have ? SKINS[skinSel].name + ' うさぎ' : '？？？';
+  const hr = document.getElementById('heroRar'); hr.className = 'rr ' + RARITY[skinSel]; hr.textContent = RARITY[skinSel];
+  const eb = document.getElementById('equipBtn');
+  eb.disabled = !have || skinSel === curSkin;
+  eb.innerHTML = !have ? '🔒 ガチャで手に入れよう' : skinSel === curSkin ? '✓ そうび中' : 'そうびする';
   const n = owned.length, all = SKIN_ORDER.length;
   document.getElementById('collCount').textContent = `${n} / ${all}`;
   document.getElementById('collBar').style.width = (n / all * 100) + '%';
-  renderGachaBtn();
 }
 let gachaBusy = false;
 function drawGacha() {
@@ -869,32 +1032,53 @@ function drawGacha() {
   gachaBusy = true; initAudio();
   lastGacha = today(); saveSkins();
   const notOwned = SKIN_ORDER.filter(k => !owned.includes(k));
-  const win = notOwned.length && Math.random() < GACHA_RATE ? notOwned[Math.floor(Math.random() * notOwned.length)] : null;
-  if (win) { owned.push(win); curSkin = win; saveSkins(); }
+  let win = null;
+  if (notOwned.length && Math.random() < GACHA_RATE) {
+    const tot = notOwned.reduce((a, k) => a + RARITY_W[RARITY[k]], 0);
+    let r = Math.random() * tot;
+    for (const k of notOwned) { r -= RARITY_W[RARITY[k]]; if (r <= 0) { win = k; break; } }
+    win = win || notOwned[0];
+  }
+  if (win) { owned.push(win); saveSkins(); }
   const $ = id => document.getElementById(id);
   renderGachaBtn();
-  $('gachaRes').textContent = '';
   $('handle').classList.add('spin'); $('dome').classList.add('jiggle');
   [0, .15, .3, .45, .6, .75, .9].forEach((t, i) => tone(380 + i * 60, 0.06, 'square', 0.1, null, t));
-  const cap = BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)];
-  setTimeout(() => { if (!$('dome')) return; $('dome').classList.remove('jiggle'); $('capTop').style.background = win ? 'linear-gradient(135deg,#ffe57a,#ff9a3e)' : cap; $('dropcap').classList.add('show'); tone(300, 0.15, 'triangle', 0.3, 150); }, 1200);
+  const capCol = win ? 'linear-gradient(135deg,#ffe57a,#ff9a3e)' : BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)];
+  setTimeout(() => { if (!$('dome')) return; $('dome').classList.remove('jiggle'); $('capTop').style.background = capCol; $('dropcap').classList.add('show'); tone(300, 0.15, 'triangle', 0.3, 150); }, 1200);
   setTimeout(() => { if (!$('dropcap')) return; $('dropcap').classList.add('open'); tone(900, 0.08, 'square', 0.15); }, 1900);
   setTimeout(() => {
     gachaBusy = false;
-    if (!$('gachaRes')) return;
-    $('handle').classList.remove('spin');
-    if (win) {
-      $('gachaRes').innerHTML = `<div class="wincard"><span class="new">NEW!</span><canvas id="winCv" width="140" height="120"></canvas>
-        <div style="font-size:12px;opacity:.7">あたり！</div><div style="font-size:18px">${SKINS[win].name} うさぎ</div></div>`;
-      previewSkin($('winCv'), win, false);
-      sfx('start'); sfx('eat');
-    } else if (!notOwned.length) {
-      $('gachaRes').innerHTML = '<div class="losecard">🌟 スキンはぜんぶ集まっています！</div>'; sfx('good');
-    } else {
-      $('gachaRes').innerHTML = '<div class="losecard">ざんねん… はずれ<br><span style="font-size:12px;opacity:.8">また明日チャレンジしてね</span></div>'; sfx('miss');
-    }
-    renderSkins();
-  }, 2200);
+    if ($('handle')) $('handle').classList.remove('spin');
+    showReveal(win, notOwned.length === 0);
+  }, 2250);
+}
+function showReveal(win, complete) {
+  const r = win ? RARITY[win] : null;
+  const box = document.createElement('div');
+  box.className = 'reveal' + (win ? ' win r-' + r : ' lose');
+  const conf = win ? Array.from({ length: 36 }, (_, i) =>
+    `<i style="left:${Math.random() * 100}%;background:${BALL_COLORS[i % 6]};animation-delay:${(Math.random() * .6).toFixed(2)}s;animation-duration:${(1.6 + Math.random()).toFixed(2)}s;transform:rotate(${Math.random() * 360}deg)"></i>`).join('') : '';
+  box.innerHTML = `<div class="rv-rays"></div><div class="rv-conf">${conf}</div>
+    <div class="rv-card">
+      ${win ? `<div class="rv-rar">${r}</div><div class="rv-new">NEW!</div><canvas id="rvCv" width="220" height="170"></canvas>
+        <div class="rv-name">${SKINS[win].name} うさぎ</div><div class="rv-sub">をゲットした！</div>`
+      : `<div class="rv-lose">${complete ? '🌟' : '💨'}</div><div class="rv-name">${complete ? 'コンプリート！' : 'ざんねん…'}</div>
+        <div class="rv-sub">${complete ? 'スキンはぜんぶ集まっています' : 'はずれ。また明日チャレンジしてね'}</div>`}
+      <div class="rv-btns">
+        ${win ? '<button class="shop-btn small" id="rvEquip">そうびする</button>' : ''}
+        <button class="shop-btn small ghost" id="rvClose">とじる</button>
+      </div>
+    </div>`;
+  document.body.appendChild(box);
+  if (win) {
+    drawSkin(document.getElementById('rvCv'), win, { bg: false, scale: 1.1, base: .92 });
+    sfx('start'); sfx('eat');
+  } else sfx(complete ? 'good' : 'miss');
+  const close = () => { box.classList.add('out'); setTimeout(() => box.remove(), 250); renderGachaBtn(); };
+  box.querySelector('#rvClose').onclick = close;
+  const eq = box.querySelector('#rvEquip');
+  if (eq) eq.onclick = () => { curSkin = win; saveSkins(); sfx('good'); close(); setShopTab('skin'); skinSel = win; renderSkins(); };
 }
 
 // ===== ランキング（1人プレイのベスト記録） =====
