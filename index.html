@@ -464,82 +464,8 @@ function start() {
 // ===== フレンドたいせん（合言葉の部屋） =====
 const vs = { mode: false, cap: null, room: null, roomName: '', pass: '', ready: false, goAt: 0, lastGo: 0, seed: 0,
   match: 0, lastSend: 0, unsub: null, others: [], done: false };
-(async () => {
-  try {
-    if (window.claude && claude.use) vs.cap = await claude.use('room');
-    else if (ONLINE.url.startsWith('https://') && ONLINE.key && window.supabase) vs.cap = makeSupabaseCap();
-  } catch (e) { vs.cap = null; }
-})();
-// Supabase Realtime（presence）を、ゲーム側の「部屋」の形にあわせる
-function makeSupabaseCap() {
-  const client = window.getSb();
-  const myId = Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
-  return {
-    join(name) {
-      return new Promise((resolve, reject) => {
-        const ch = client.channel('flickrun-' + name, { config: { presence: { key: myId }, broadcast: { self: false } } });
-        let mine = {}, snap = [], handlers = [], left = false, done = false;
-        const bc = new Map();      // 走っている間の状態は broadcast で受け取る（presence より速くて安定）
-        const lastPres = new Map(); // presence が一瞬消えても 15秒は覚えておく
-        const rebuild = () => {
-          const st = ch.presenceState(), now = Date.now();
-          Object.keys(st).forEach(k => { const arr = st[k]; const pr = Object.assign({}, arr[arr.length - 1]); delete pr.presence_ref; lastPres.set(k, { p: pr, t: now }); });
-          const keys = new Set();
-          for (const [k, v] of lastPres) { if (st[k] || now - v.t < 15000) keys.add(k); else lastPres.delete(k); }
-          for (const [k, v] of bc) { if (now - v.t < 15000) keys.add(k); else bc.delete(k); }
-          keys.delete(myId);
-          snap = [...keys].map(k => {
-            const pr = Object.assign({}, (lastPres.get(k) || {}).p, (bc.get(k) || {}).p);
-            return { peer: k, by: null, kind: 'viewer', isMe: false, sameTab: false, guest: false, presence: pr, updatedAt: now };
-          }).filter(x => typeof x.presence.name === 'string');
-          // 自分の状態は、送った瞬間の内容をそのまま使う（サーバーの返事を待たない）
-          snap.push({ peer: myId, by: null, kind: 'viewer', isMe: true, sameTab: true, guest: false, presence: mine, updatedAt: now });
-          handlers.forEach(h => { try { h({ peers: snap, joined: [], left: [], updated: [] }); } catch (e) {} });
-        };
-        ch.on('presence', { event: 'sync' }, rebuild);
-        ch.on('broadcast', { event: 'st' }, msg => {
-          const p = msg && msg.payload; if (!p || typeof p.k !== 'string' || p.k === myId) return;
-          const prev = bc.get(p.k);
-          if (prev && prev.p.seq > p.seq) return;       // 古い知らせは無視
-          const body = Object.assign({}, p); delete body.k;
-          bc.set(p.k, { p: body, t: Date.now() }); rebuild();
-        });
-        setInterval(() => { if (!left) rebuild(); }, 1000);
-        // broadcast：変化をすぐ送る（1秒に5回まで）／presence：1秒に1回だけ（あとから来た人用）
-        let seq = 0, bq = null, bpend = false, tq = null, tpend = false;
-        const sendB = () => {
-          if (bq) { bpend = true; return; }
-          seq++; ch.send({ type: 'broadcast', event: 'st', payload: Object.assign({ k: myId, seq }, mine) }).catch(() => {});
-          bq = setTimeout(() => { bq = null; if (bpend) { bpend = false; sendB(); } }, 200);
-        };
-        const push = () => {
-          if (tq) { tpend = true; return; }
-          ch.track(mine).catch(() => {});
-          tq = setTimeout(() => { tq = null; if (tpend) { tpend = false; push(); } }, 1000);
-        };
-        setInterval(() => { if (!left && done && mine.name) sendB(); }, 1000);   // 生きている合図（1秒ごと）
-        const room = {
-          name,
-          presence(patch) {
-            mine = Object.assign({}, mine);
-            for (const k in patch) { if (patch[k] === null) delete mine[k]; else mine[k] = patch[k]; }
-            push(); sendB(); setTimeout(rebuild, 0); return Promise.resolve();
-          },
-          peers() { return snap; },
-          onPeers(h) { handlers.push(h); setTimeout(() => h({ peers: snap, joined: [], left: [], updated: [] }), 0); return () => { handlers = handlers.filter(x => x !== h); }; },
-          connected() { return !left; },
-          async leave() { left = true; try { await ch.untrack(); } catch (e) {} try { await client.removeChannel(ch); } catch (e) {} },
-          emit() { return Promise.resolve(); }, on() { return () => {}; },
-        };
-        const to = setTimeout(() => { if (!done) { done = true; reject(new Error('timeout')); } }, 10000);
-        ch.subscribe(status => {
-          if (status === 'SUBSCRIBED' && !done) { done = true; clearTimeout(to); resolve(room); }
-          else if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && !done) { done = true; clearTimeout(to); reject(new Error(status)); }
-        });
-      });
-    },
-  };
-}
+// フレンド対戦はなくしたので、部屋にはつながない
+vs.cap = null;
 let passBuf = '';
 function hashStr(t) { let h = 2166136261; for (const c of t) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
 function showPass() {
@@ -600,7 +526,18 @@ async function vsLeave() {
 }
 function vsPeers() {
   if (!vs.room) return [];
-  return vs.room.peers().filter(p => p.kind === 'viewer' && p.presence && typeof p.presence.name === 'string');
+  const now = Date.now();
+  // 8秒以上 合図（hb）が来ていない人は、もう部屋にいない古い記録とみなす
+  const list = vs.room.peers().filter(p => p.kind === 'viewer' && p.presence && typeof p.presence.name === 'string'
+    && ((p.isMe && p.sameTab) || now - (p.updatedAt || now) < 8000));
+  // 同じ名前が2つあるとき（入り直し直後など）は、新しいほうだけ残す
+  const byName = new Map();
+  for (const p of list) {
+    if (p.isMe && p.sameTab) { byName.set('\u0000me', p); continue; }
+    const k = String(p.presence.name), o = byName.get(k);
+    if (!o || (p.updatedAt || 0) > (o.updatedAt || 0)) byName.set(k, p);
+  }
+  return [...byName.values()];
 }
 function setPresence(patch) { if (vs.room) vs.room.presence(patch).catch(() => {}); }
 function showLobby() {
@@ -659,6 +596,8 @@ function vsOnPeers() {
   }
 }
 function vsTick() {
+  // 生きている合図を2秒ごとに出す（相手が「古い記録」と見分けるため）
+  if (vs.room && performance.now() - (vs.lastHb || 0) > 2000) { vs.lastHb = performance.now(); vs.hb = (vs.hb || 0) + 1; setPresence({ hb: vs.hb }); }
   if (state === 'countdown') {
     const left = vs.goAt - Date.now();
     const n = Math.ceil(left / 1000);
@@ -772,25 +711,30 @@ function drawGhosts() {
   const spect = state === 'spectate';
   for (const r of vsRivals()) {
     const dead = r.st !== 'play';
-    const gx = PX + (r.dist - dist) - (spect ? 0 : 14);   // 自分と重ならないよう少し後ろに表示
+    // 走っている相手は自分にぴったり重ねて一緒に進む／アウトになった相手はその場に止まる
+    const gx = (dead || spect) ? PX + (r.dist - dist) : PX - 10;   // 少しだけずらして、うすく重ねる
     ctx.save();
     if (gx > -40 && gx < W + 40) {
       // 穴やバナナの上では はねる／川では泳ぐ
       let gy = 0, swim = false;
-      if (!dead) for (const o of obs) {
+      if (!dead && spect) for (const o of obs) {
         if ((o.type === 'pit' || o.type === 'banana') && gx > o.x - 30 && gx < o.x + o.w + 30) {
           const t = (gx - (o.x - 30)) / (o.w + 60); gy = Math.sin(Math.PI * t) * (o.type === 'pit' ? 90 : 55);
         }
         if (o.type === 'river' && gx > o.x && gx < o.x + o.w) swim = true;
       }
-      ctx.globalAlpha = dead ? 0.3 : spect ? 0.95 : 0.55;
-      player = { y: gy, fallY: 0, runT: sv.player.runT + 1.7, jumping: gy > 0, punchT: 0, openT: 0, swim };
+      ctx.globalAlpha = dead ? 0.3 : spect ? 0.95 : 0.5;
+      const same = !dead && !spect;   // 重ねるときは自分と同じ動き
+      player = same ? Object.assign({}, sv.player) : { y: gy, fallY: 0, runT: sv.player.runT + 1.7, jumping: gy > 0, punchT: 0, openT: 0, swim };
       state = dead ? 'dying' : 'play'; deathType = 'door'; deathT = 0;
       drawPlayer(gx, r.skin);
       player = sv.player; state = sv.state; deathType = sv.deathType; deathT = sv.deathT;
       ctx.globalAlpha = 1; ctx.font = '800 15px "M PLUS Rounded 1c", sans-serif'; ctx.textAlign = 'center';
-      ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.strokeText(r.name, gx + 6, GROUND - 96 - gy);
-      ctx.fillStyle = '#ff4f8b'; ctx.fillText(r.name, gx + 6, GROUND - 96 - gy);
+      const py = same ? player.y : gy;
+      const diffM = Math.floor((r.dist - dist) / MPX);
+      const label = same ? r.name + (diffM ? (diffM > 0 ? ' +' : ' ') + diffM + 'm' : '') : r.name;
+      ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.strokeText(label, gx + 6, GROUND - 96 - py);
+      ctx.fillStyle = '#ff4f8b'; ctx.fillText(label, gx + 6, GROUND - 96 - py);
     } else {
       const ahead = gx >= W + 40;
       const ex = ahead ? W - 70 : 70;
@@ -981,7 +925,7 @@ rankReady = (async () => {
   } catch (e) { rankApi = null; }
 })();
 function submitBest() {
-  if (!playerName || best <= 0) return;
+  if (!playerName || best <= 0 || isBadName(playerName)) return;
   rankReady.then(() => { if (rankApi) rankApi.submit(playerName.slice(0, 8), best, curSkin).catch(() => {}); });
 }
 function showRanking() {
@@ -1001,7 +945,7 @@ function showRanking() {
   rankReady.then(async () => {
     if (!rankApi) { done = true; clearTimeout(timer); list.innerHTML = '<div class="rank-msg">この場所ではランキングを使えません</div>'; return; }
     try {
-      if (best > 0) await rankApi.submit(playerName.slice(0, 8), best, curSkin).catch(() => {});
+      if (best > 0 && !isBadName(playerName)) await rankApi.submit(playerName.slice(0, 8), best, curSkin).catch(() => {});
       const rows = await rankApi.top(10);
       done = true; clearTimeout(timer);
       if (!list.isConnected) return;
@@ -1011,7 +955,7 @@ function showRanking() {
         const medal = ['🥇', '🥈', '🥉'][i] || `<span class="rk-n">${i + 1}</span>`;
         return `<div class="rk${r.me ? ' me' : ''}${i < 3 ? ' top' : ''}"><div class="rk-m">${medal}</div>
           <span class="rk-dot" style="background:${sk.fur};border-color:${sk.line}"></span>
-          <div class="rk-name">${esc(String(r.name || 'ななし').slice(0, 8))}${r.me ? ' <small>あなた</small>' : ''}</div>
+          <div class="rk-name">${esc(isBadName(r.name || '') ? 'ななし' : String(r.name || 'ななし').slice(0, 8))}${r.me ? ' <small>あなた</small>' : ''}</div>
           <div class="rk-s">${Math.floor(+r.score || 0)}<small> m</small></div></div>`;
       }).join('');
     } catch (e) {
@@ -1019,6 +963,27 @@ function showRanking() {
       if (list.isConnected) list.innerHTML = '<div class="rank-msg">ランキングを読みこめませんでした</div>';
     }
   });
+}
+
+
+// ===== 不適切な名前のチェック =====
+const NG_PART = ['しね','しんで','ころす','ころせ','ころし','きえろ','きもい','きしょい','うざい','ちんこ','ちんちん','ちんぽ','まんこ','おっぱい','せっくす','うんこ','うんち','ちくび','おなに','れいぷ','ごうかん','ちかん','やりまん','やりちん','びっち','がいじ','きちがい','ちしょう','ふぁっく','ぺにす',
+  '死ね','殺す','殺せ','消えろ','馬鹿','阿呆','糞','犯す','強姦','痴漢','基地外','気違い','池沼','乳首','陰茎','性器','売春','淫',
+  'fuck','shit','bitch','porn','pussy','cunt','nigg','fag','rape','penis','dick','sex','xxx','unko','chinko','manko','shineyo'];
+const NG_EXACT = ['ばか','あほ','くず','かす','ぶす','でぶ','えろ','えっち','ほも','れず','ass','baka','aho','ero','kuso','くそ','kill','shine','sine'];
+function normName(t) {
+  return String(t).normalize('NFKC').toLowerCase()
+    .replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60))     // カタカナ→ひらがな
+    .replace(/[ぁぃぅぇぉっゃゅょゎ]/g, ch => ({ 'ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','っ':'','ゃ':'や','ゅ':'ゆ','ょ':'よ','ゎ':'わ' }[ch]))
+    .replace(/[\s　ー〜~\-_.・、。,!！?？*＊/\\|()（）「」『』【】\[\]{}<>＜＞'"`^+=#$%&@:;0-9]/g, '');
+}
+function isBadName(t) {
+  const raw = String(t).normalize('NFKC').toLowerCase();
+  const n = normName(t);
+  const forms = [n, raw.replace(/\s/g, '')];
+  // 小さい字も含めた形（せっくす など）
+  forms.push(String(t).normalize('NFKC').toLowerCase().replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60)).replace(/[\s　ー〜~\-_.・、。,!！?？*＊]/g, ''));
+  return forms.some(f => NG_PART.some(w => f.includes(normName(w)) || f.includes(w)) || NG_EXACT.some(w => f === normName(w) || f === w));
 }
 
 // ===== 画面：ログイン / タイトル / ルール =====
@@ -1046,6 +1011,7 @@ function renderName() {
 function doLogin() {
   const n = nameBuf.trim();
   if (!n) { document.getElementById('err').textContent = '名前を入れてください'; sfx('typo'); return; }
+  if (isBadName(n)) { document.getElementById('err').textContent = '使用できません。'; sfx('typo'); return; }
   playerName = n;
   try { localStorage.setItem('tossaRunName', n); } catch (e) {}
   loadBest(); initAudio(); sfx('good'); showTitle();
@@ -1058,12 +1024,9 @@ function showTitle() {
     <p class="big">ようこそ、${esc(playerName)} さん</p>
     <p>ベスト記録：${best} m</p>
     <button id="startBtn">ひとりで スタート</button>
-    <button id="vsBtn" class="btn2" style="font-size:18px;padding:11px 28px;background:#ff7aa8;color:#fff;box-shadow:0 4px 0 #b84a72">🤝 フレンド対戦</button>
     <div class="row"><button class="btn2" id="rulesBtn">📖 ルール説明</button><button class="btn2" id="rankBtn">🏆 ランキング</button><button class="btn2" id="skinBtn">🎨 スキン</button><button class="btn2" id="logoutBtn">名前を変える</button></div>`;
   document.getElementById('startBtn').onclick = start;
   document.getElementById('rulesBtn').onclick = showRules;
-  document.getElementById('vsBtn').onclick = showPass;
-  if (!window.claude && !(ONLINE.url.startsWith('https://') && ONLINE.key)) document.getElementById('vsBtn').style.display = 'none';
   vs.mode = false; vsLeave();
   document.getElementById('logoutBtn').onclick = showLogin;
   document.getElementById('skinBtn').onclick = () => showSkins(showTitle);
@@ -1101,13 +1064,6 @@ function showRules() {
     </ul>
     <h2>🏆 ランキング</h2>
     <ul><li>1人プレイのベスト記録が、名前といっしょにランキングにのります（上位10人）</li></ul>
-    <h2>🤝 フレンド対戦</h2>
-    <ul>
-      <li>「フレンド対戦」で合言葉を入れると、同じ合言葉の人と同じ部屋に入れます</li>
-      <li>2人以上がそろって全員「じゅんびOK」を押すと、カウントダウンでスタート</li>
-      <li>全員まったく同じコースを走ります。半とうめいのうさぎがフレンドです</li>
-      <li>いちばん遠くまで走った人の勝ち！</li>
-    </ul>
     <h2>🔊 音</h2>
     <p>BGMと効果音が鳴ります。iPhoneの消音スイッチがオンだと音は出ません。</p>
   </div>
@@ -1554,6 +1510,7 @@ function drawPlayer(px = PX, skinId = curSkin) {
 }
 
 loadBest();
+if (playerName && isBadName(playerName)) { playerName = ''; try { localStorage.removeItem('tossaRunName'); } catch (e) {} }
 if (playerName) showTitle(); else showLogin();
 
 let last = performance.now();
