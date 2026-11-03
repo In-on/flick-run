@@ -11,80 +11,6 @@
 <meta name="theme-color" content="#1d2333">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// Supabase Realtime を、ゲームの「部屋」の形にあわせる（フレンド対戦用）
-window.makeSupabaseCap = function () {
-  const client = window.getSb(); if (!client) return null;
-  const myId = Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
-  return {
-    join(name) {
-      return new Promise((resolve, reject) => {
-        const ch = client.channel('flickrun-' + name, { config: { presence: { key: myId }, broadcast: { self: false } } });
-        let mine = {}, snap = [], handlers = [], left = false, done = false;
-        const bc = new Map();       // 走っている間の状態は broadcast で受け取る
-        const lastPres = new Map(); // presence が一瞬消えても 15秒は覚えておく
-        const seenAt = new Map();   // その人から最後に新しい知らせが来た時刻
-        const rebuild = () => {
-          const st = ch.presenceState(), now = Date.now();
-          Object.keys(st).forEach(k => {
-            const arr = st[k]; const pr = Object.assign({}, arr[arr.length - 1]); delete pr.presence_ref;
-            const j = JSON.stringify(pr), old = lastPres.get(k);
-            lastPres.set(k, { p: pr, t: now, j });
-            if (!old || old.j !== j) seenAt.set(k, now);
-          });
-          const keys = new Set();
-          for (const [k, v] of lastPres) { if (st[k] || now - v.t < 15000) keys.add(k); else lastPres.delete(k); }
-          for (const [k, v] of bc) { if (now - v.t < 15000) keys.add(k); else bc.delete(k); }
-          keys.delete(myId);
-          snap = [...keys].map(k => {
-            const pr = Object.assign({}, (lastPres.get(k) || {}).p, (bc.get(k) || {}).p);
-            return { peer: k, by: null, kind: 'viewer', isMe: false, sameTab: false, guest: false, presence: pr, updatedAt: seenAt.get(k) || 0 };
-          }).filter(x => typeof x.presence.name === 'string');
-          snap.push({ peer: myId, by: null, kind: 'viewer', isMe: true, sameTab: true, guest: false, presence: mine, updatedAt: now });
-          handlers.forEach(h => { try { h({ peers: snap, joined: [], left: [], updated: [] }); } catch (e) {} });
-        };
-        ch.on('presence', { event: 'sync' }, rebuild);
-        ch.on('broadcast', { event: 'st' }, msg => {
-          const p = msg && msg.payload; if (!p || typeof p.k !== 'string' || p.k === myId) return;
-          const prev = bc.get(p.k);
-          if (prev && prev.p.seq > p.seq) return;
-          const body = Object.assign({}, p); delete body.k;
-          bc.set(p.k, { p: body, t: Date.now() }); seenAt.set(p.k, Date.now()); rebuild();
-        });
-        setInterval(() => { if (!left) rebuild(); }, 1000);
-        let seq = 0, bq = null, bpend = false, tq = null, tpend = false;
-        const sendB = () => {
-          if (bq) { bpend = true; return; }
-          seq++; ch.send({ type: 'broadcast', event: 'st', payload: Object.assign({ k: myId, seq }, mine) }).catch(() => {});
-          bq = setTimeout(() => { bq = null; if (bpend) { bpend = false; sendB(); } }, 200);
-        };
-        const push = () => {
-          if (tq) { tpend = true; return; }
-          ch.track(mine).catch(() => {});
-          tq = setTimeout(() => { tq = null; if (tpend) { tpend = false; push(); } }, 1000);
-        };
-        setInterval(() => { if (!left && done && mine.name) sendB(); }, 1000);
-        const room = {
-          name,
-          presence(patch) {
-            mine = Object.assign({}, mine);
-            for (const k in patch) { if (patch[k] === null) delete mine[k]; else mine[k] = patch[k]; }
-            push(); sendB(); setTimeout(rebuild, 0); return Promise.resolve();
-          },
-          peers() { return snap; },
-          onPeers(h) { handlers.push(h); setTimeout(() => h({ peers: snap, joined: [], left: [], updated: [] }), 0); return () => { handlers = handlers.filter(x => x !== h); }; },
-          connected() { return !left; },
-          async leave() { left = true; try { await ch.untrack(); } catch (e) {} try { await client.removeChannel(ch); } catch (e) {} },
-          emit() { return Promise.resolve(); }, on() { return () => {}; },
-        };
-        const to = setTimeout(() => { if (!done) { done = true; reject(new Error('timeout')); } }, 10000);
-        ch.subscribe(status => {
-          if (status === 'SUBSCRIBED' && !done) { done = true; clearTimeout(to); resolve(room); }
-          else if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && !done) { done = true; clearTimeout(to); reject(new Error(status)); }
-        });
-      });
-    },
-  };
-};
 // Supabase：共通のクライアント
 window.getSb = function () {
   if (window.__sb) return window.__sb;
@@ -361,8 +287,8 @@ window.makeSupabaseRank = function () {
 //  オンライン対戦の設定（Supabaseの値をここに入れる）
 // ============================================================
 const ONLINE = {
-  url: 'https://sbhdgqhhwqitmsmbfgoj.supabase.co',   // 例: https://xxxxxxxx.supabase.co
-  key: 'sb_publishable_UYLxwfRQVxurstLALqGxJA_AQZL2cxw',   // 例: sb_publishable_xxxx または eyJ... (anon key)
+  url: 'https://zgrmlgwpsalmanhkqkvx.supabase.co',   // 例: https://xxxxxxxx.supabase.co
+  key: 'sb_publishable_Vt55_Dm5z0hZql1b1em6Aw_28YzT4Xg',   // 例: sb_publishable_xxxx または eyJ... (anon key)
 };
 // ============================================================
 const cv = document.getElementById('c');
@@ -627,12 +553,8 @@ function start() {
 // ===== フレンドたいせん（合言葉の部屋） =====
 const vs = { mode: false, cap: null, room: null, roomName: '', pass: '', ready: false, goAt: 0, lastGo: 0, seed: 0,
   match: 0, lastSend: 0, unsub: null, others: [], done: false };
-(async () => {
-  try {
-    if (window.claude && claude.use) vs.cap = await claude.use('room');
-    else if (window.makeSupabaseCap) vs.cap = window.makeSupabaseCap();
-  } catch (e) { vs.cap = null; }
-})();
+// フレンド対戦はなくしたので、部屋にはつながない
+vs.cap = null;
 let passBuf = '';
 function hashStr(t) { let h = 2166136261; for (const c of t) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
 function showPass() {
@@ -1286,7 +1208,6 @@ function showTitle() {
     <p class="big">ようこそ、${esc(playerName)} さん</p>
     <p>ベスト記録：${best} m</p>
     <button id="startBtn">ひとりで スタート</button>
-    <button id="vsBtn" class="btn2" style="font-size:18px;padding:11px 28px;background:#ff7aa8;color:#fff;box-shadow:0 4px 0 #b84a72">🤝 フレンド対戦</button>
     <div class="row"><button class="btn2" id="rulesBtn">📖 ルール説明</button><button class="btn2" id="rankBtn">🏆 ランキング</button><button class="btn2" id="skinBtn">🎨 スキン</button><button class="btn2" id="logoutBtn">名前を変える</button></div>`;
   document.getElementById('startBtn').onclick = start;
   document.getElementById('rulesBtn').onclick = showRules;
@@ -1294,8 +1215,6 @@ function showTitle() {
   document.getElementById('logoutBtn').onclick = showLogin;
   document.getElementById('skinBtn').onclick = () => showSkins(showTitle);
   document.getElementById('rankBtn').onclick = showRanking;
-  document.getElementById('vsBtn').onclick = showPass;
-  if (!window.claude && !(ONLINE.url.startsWith('https://') && ONLINE.key)) document.getElementById('vsBtn').style.display = 'none';
 }
 function showRules() {
   document.body.classList.add('menu');
@@ -1326,13 +1245,6 @@ function showRules() {
       <li>走った距離（m）がスコア。名前ごとにベスト記録が残ります</li>
       <li>走るほどスピードアップ。しかけの間隔も短くなります</li>
       <li>ぎりぎりで打つと「ギリギリ！」、早めなら「はやい！」</li>
-    </ul>
-    <h2>🤝 フレンド対戦</h2>
-    <ul>
-      <li>「フレンド対戦」で合言葉を入れると、同じ合言葉の人と同じ部屋に入れます</li>
-      <li>2人以上がそろって全員「じゅんびOK」を押すと、カウントダウンでスタート</li>
-      <li>全員まったく同じコースを走ります。うすく重なっているうさぎがフレンドです</li>
-      <li>先にアウトになったら観戦。いちばん遠くまで走った人の勝ち！</li>
     </ul>
     <h2>🏆 ランキング</h2>
     <ul><li>1人プレイのベスト記録が、名前といっしょにランキングにのります（上位10人）</li></ul>
